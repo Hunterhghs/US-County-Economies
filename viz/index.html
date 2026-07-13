@@ -125,6 +125,18 @@ function selectCounty(f){
     <div class="detail-row"><span>Percentile</span><span class="detail-val" style="color:#3fb950;">Top ${pct}%</span></div>
     <div class="detail-row"><span>vs. National Avg</span><span class="detail-val" style="color:${gdp>avg?'#3fb950':'#f85149'};">${gdp>avg?'Above':'Below'} avg</span></div>
     <div class="detail-row"><span>Productivity</span><span class="detail-val">$${Math.round(gdp*(f.properties._pop/Math.max(1,f.properties._emp))).toLocaleString()}</span></div>`;
+  if(window.parent!==window){
+    window.parent.postMessage({
+      type:'countySelected',
+      name:f.properties._name,gdp:Math.round(gdp),
+      growth:(f.properties._growth*100).toFixed(1),
+      sector:sectors[f.properties._sector].n,
+      sectorColor:sectors[f.properties._sector].c,
+      population:f.properties._pop,employment:f.properties._emp,
+      rank:rank,total:allG.length,percentile:pct,
+      aboveAvg:gdp>avg
+    },'*');
+  }
 }
 
 function updateKPIs(){
@@ -166,56 +178,32 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
 
 </script>
 </head>
-<body>
-<main id="observablehq-main" class="observablehq">
+<body style="margin:0;padding:0;overflow:hidden;">
+<main id="observablehq-main" class="observablehq" style="max-width:100%;margin:0;padding:0;">
 <style>
-  #dashboard { display: grid; grid-template-columns: 280px 1fr 280px; gap: 0.75rem; height: calc(100vh - 160px); min-height: 650px; }
-  #dash-left, #dash-right { display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; }
-  #dash-center { display: flex; flex-direction: column; gap: 0.75rem; }
-  #dash-map { flex: 1; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; background: #0d1117; }
-  #dash-controls { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; flex-wrap: wrap; font-size: 0.82rem; }
-  #dash-controls button, #dash-controls select { padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; font-size: 0.8rem; font-family: inherit; cursor: pointer; color: #c9d1d9; }
+  #dashboard { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+  #dash-center { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  #dash-map { flex: 1; background: #0d1117; }
+  #dash-controls { display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 1rem; background: #161b22; border-bottom: 1px solid #30363d; flex-wrap: wrap; font-size: 0.78rem; z-index: 10; }
+  #dash-controls button, #dash-controls select { padding: 0.25rem 0.65rem; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; font-size: 0.75rem; font-family: inherit; cursor: pointer; color: #c9d1d9; }
   #dash-controls button:hover, #dash-controls select:hover { border-color: #58a6ff; background: #1c2430; }
   #dash-controls button.act { background: #1a2b45; border-color: #58a6ff; color: #58a6ff; font-weight: 600; }
   #dash-controls button.playing { background: #3d1a1a; border-color: #f85149; color: #f85149; }
-  #dash-controls input[type=range] { -webkit-appearance:none; height:4px; background:#30363d; border-radius:2px; width:140px; }
+  #dash-controls input[type=range] { -webkit-appearance:none; height:4px; background:#30363d; border-radius:2px; width:120px; }
   #dash-controls input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px;height:14px;background:#58a6ff;border-radius:50%;cursor:pointer; }
   .dash-tooltip { background: #161b22 !important; border: 1px solid #30363d !important; border-radius: 6px !important; color: #c9d1d9 !important; font-family: -apple-system, system-ui, sans-serif !important; padding: 0.4rem 0.7rem !important; box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; }
-  #dash-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0 0.75rem; }
-  #dash-header .brand { font-size: 1.2rem; font-weight: 700; color: #e6edf3; }
-  #dash-header .brand span { color: #58a6ff; }
-  @media (max-width: 1100px) { #dashboard { grid-template-columns: 1fr; height: auto; } #dash-map { height: 400px; } }
   .leaflet-control-zoom a { background: #161b22 !important; color: #c9d1d9 !important; border-color: #30363d !important; }
+  .observablehq--block { display: none; }
 </style>
-<div id="dash-header">
-  <div class="brand">H <span>Heuristics</span> <span style="font-weight:400;color:#8b949e;font-size:0.85rem;margin-left:0.5rem;">· US County Economic Map</span></div>
-  <div style="display:flex;gap:0.75rem;align-items:center;">
-    <span style="font-size:0.7rem;color:#8b949e;">Data: 2010–2024 · 3,000+ Counties · 8 Sectors</span>
-  </div>
-</div>
-<div class="grid grid-cols-5" style="margin-bottom:0.75rem;" id="kpi-bar"></div>
+<div id="dash-hidden" style="display:none;" aria-hidden="true"><div id="kpi-bar"></div><div id="county-detail"></div><div id="county-metrics"></div><div id="rank-top"></div><div id="rank-bottom"></div><div id="sector-bars"></div></div>
 <div id="dashboard">
-  <div id="dash-left">
-    <div class="card" style="padding:1rem;">
-      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><circle cx="5" cy="4" r="2.5" fill="none" stroke="#58a6ff" stroke-width="1.2"/><polygon points="5,6.5 4,9.5 6,9.5" fill="#58a6ff" opacity="0.3"/></svg> Selected County</h3>
-      <div id="county-detail">
-        <p class="muted" style="text-align:center;padding:2.5rem 0;">Click a county<br>on the map →</p>
-      </div>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><rect x="0.5" y="5.5" width="2" height="4" rx="0.3" fill="#3fb950" opacity="0.5"/><rect x="3.5" y="2.5" width="2" height="7" rx="0.3" fill="#3fb950" opacity="0.7"/><rect x="6.5" y="0.5" width="2" height="9" rx="0.3" fill="#3fb950"/></svg> County Metrics</h3>
-      <div id="county-metrics">
-        <p class="muted" style="text-align:center;padding:1.5rem 0;">County details<br>appear here</p>
-      </div>
-    </div>
-  </div>
   <div id="dash-center">
     <div id="dash-controls">
       <span style="font-weight:600;color:#8b949e;">Color:</span>
       <button class="act" data-c="sector">Industry</button>
       <button data-c="growth">Growth</button>
       <button data-c="gdp">GDP/cap</button>
-      <span style="width:1px;height:20px;background:#30363d;"></span>
+      <span style="width:1px;height:18px;background:#30363d;"></span>
       <button id="dash-play"><svg width="9" height="10" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polygon points="0,0 8,4.5 0,9" fill="currentColor"/></svg> Play</button>
       <span style="font-weight:600;color:#8b949e;">Year:</span>
       <input type="range" id="dash-year" min="0" max="14" value="14" step="1">
@@ -223,20 +211,6 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
       <select id="dash-speed"><option value="0.5">0.5×</option><option value="1" selected="">1×</option><option value="2">2×</option></select>
     </div>
     <div id="dash-map"></div>
-  </div>
-  <div id="dash-right">
-    <div class="card" style="padding:1rem;">
-      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><polyline points="1.5,7 5,2.5 8.5,7" fill="none" stroke="#d2991d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Top 10 by GDP/cap</h3>
-      <div id="rank-top"></div>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><polyline points="1.5,3 5,7.5 8.5,3" fill="none" stroke="#8b949e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bottom 10</h3>
-      <div id="rank-bottom"></div>
-    </div>
-    <div class="card" style="padding:1rem;">
-      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.35"/><rect x="5.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.55"/><rect x="0.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.2"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.7"/></svg> Sector Distribution</h3>
-      <div id="sector-bars"></div>
-    </div>
   </div>
 </div>
 <div class="observablehq observablehq--block"><!--:799ce230:--></div>
