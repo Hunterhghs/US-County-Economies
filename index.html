@@ -212,7 +212,17 @@ body{
   margin-bottom:0.6rem;
   padding-bottom:0.5rem;
   border-bottom:0.5px solid var(--border-subtle);
+  display:flex;
+  align-items:center;
+  gap:0.4rem;
 }
+.panel-card__icon{
+  flex-shrink:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.panel-card__icon svg{display:block}
 .panel-card__empty{
   text-align:center;
   padding:1.5rem 0.5rem;
@@ -384,13 +394,13 @@ body{
   <!-- LEFT PANEL — County Detail -->
   <div class="dash-panel dash-panel--left">
     <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title">📍 Selected County</div>
+      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="2.5" fill="none" stroke="#b89b5e" stroke-width="1.2"/><polygon points="5,6.5 4,10 6,10" fill="#b89b5e" opacity="0.3"/></svg></span> Selected County</div>
       <div id="county-detail">
         <div class="panel-card__empty">Click a county<br>on the map →</div>
       </div>
     </div>
     <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title">📊 County Metrics</div>
+      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="6" width="2" height="3.5" rx="0.3" fill="#b89b5e" opacity="0.5"/><rect x="3.5" y="3" width="2" height="6.5" rx="0.3" fill="#b89b5e" opacity="0.7"/><rect x="6.5" y="1" width="2" height="8.5" rx="0.3" fill="#b89b5e"/></svg></span> County Metrics</div>
       <div id="county-metrics">
         <div class="panel-card__empty">County details<br>appear here</div>
       </div>
@@ -403,7 +413,7 @@ body{
       <strong>US County Economic Map</strong>
       <span style="margin-left:auto;">Color: Industry · Growth · GDP/cap</span>
       <span style="margin-left:0.5rem;">Year: 2010–2024</span>
-      <span style="margin-left:0.5rem;font-weight:600;color:#58a6ff;">▶ Play</span>
+      <span style="margin-left:0.5rem;font-weight:600;color:#58a6ff;"><svg width="8" height="9" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polygon points="0,0 8,4.5 0,9" fill="#58a6ff"/></svg>Play</span>
     </div>
     <div class="dash-center__map">
       <iframe src="viz/index.html" id="map-iframe" title="US County Economic Map" sandbox="allow-scripts allow-same-origin"></iframe>
@@ -413,7 +423,7 @@ body{
   <!-- RIGHT PANEL — Rankings & Sectors -->
   <div class="dash-panel dash-panel--right">
     <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title">🏆 Top 10 by GDP/cap</div>
+      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,7 5,2.5 8.5,7" fill="none" stroke="#b89b5e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Top 10 by GDP/cap</div>
       <div id="rank-top">
         <div class="rank-item"><span class="rank-item__pos">1.</span><span class="rank-item__name">Austin</span><span class="rank-item__value blue">$18k</span></div>
         <div class="rank-item"><span class="rank-item__pos">2.</span><span class="rank-item__name">Kitsap</span><span class="rank-item__value blue">$18k</span></div>
@@ -428,7 +438,7 @@ body{
       </div>
     </div>
     <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title">📉 Bottom 10</div>
+      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,3 5,7.5 8.5,3" fill="none" stroke="#5a6a7a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Bottom 10</div>
       <div id="rank-bottom">
         <div class="rank-item"><span class="rank-item__pos">3,222.</span><span class="rank-item__name">Garfield</span><span class="rank-item__value red">$0k</span></div>
         <div class="rank-item"><span class="rank-item__pos">3,223.</span><span class="rank-item__name">Cleburne</span><span class="rank-item__value red">$0k</span></div>
@@ -438,7 +448,7 @@ body{
       </div>
     </div>
     <div class="panel-card">
-      <div class="panel-card__title">🏭 Sector Distribution</div>
+      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.35"/><rect x="5.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.55"/><rect x="0.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.2"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.7"/></svg></span> Sector Distribution</div>
       <div id="sector-bars">
         <div class="sector-item">
           <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#58a6ff;"></span>Technology</span><span class="sector-item__count">393</span></div>
