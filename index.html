@@ -4,21 +4,43 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>US County Economies — H Heuristics</title>
-<meta name="description" content="Interactive dashboard exploring US county-level economic data (2010–2024). 3,000+ counties, 8 industry sectors — powered by Observable and H Heuristics.">
+<meta name="description" content="Interactive exploration of US county-level economic data (2010–2024). 3,000+ counties, 8 industry sectors, GDP per capita, growth rates, and employment — powered by Observable and H Heuristics.">
 <meta name="theme-color" content="#faf9f5">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta property="og:title" content="US County Economies — H Heuristics">
+<meta property="og:description" content="Interactive county-level economic data visualization. 3,000+ counties, 8 sectors, 2010–2024.">
+<meta property="og:type" content="website">
 <style>
-/* ===== RESET ===== */
+/* ===== RESET & BASE ===== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{
+  background:var(--bg);
+  color:var(--text-primary);
+  font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  font-weight:400;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  opacity:0.6;
+}
 
 /* ===== DESIGN TOKENS — H Heuristics Light ===== */
 :root{
   --bg:#faf9f5;
-  --bg-card:#ffffff;
   --bg-elevated:#f3f2ed;
+  --bg-overlay:#ffffff;
   --bg-dark:#0c1929;
   --border:#d9d6ce;
   --border-subtle:#e8e5de;
@@ -26,35 +48,31 @@ html{scroll-behavior:smooth}
   --text-primary:#0c1929;
   --text-secondary:#2a3a4e;
   --text-muted:#5a6a7a;
+  --text-placeholder:#8a96a6;
   --text-on-dark:#e8ecf0;
   --accent:#b89b5e;
-  --accent-dark:#d4b87a;
+  --accent-hover:#a0864d;
   --accent-dim:#f5efe0;
+  --accent-dark:#d4b87a;
   --blue:#58a6ff;
-  --blue-dim:rgba(88,166,255,0.08);
-  --green:#3fb950;
+  --green:#2d8a4e;
   --green-dim:#e8f5ec;
   --gold-ct:#b89b5e;
-  --red:#f85149;
-  --red-dim:rgba(248,81,73,0.08);
-  --purple:#bc8cff;
+  --red:#c0392b;
+  --red-dim:#fce8e6;
+  --purple:#6c5ce7;
+  --purple-dim:#f0edfc;
+  --orange:#e67e22;
   --radius-sm:2px;
   --radius-md:4px;
+  --radius-lg:6px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.04);
   --shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);
-  --shadow-lg:0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:0 4px 16px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.04);
   --transition:180ms ease;
   --font-display:'Cormorant Garamond',Georgia,'Times New Roman',serif;
   --font-body:'Source Sans 3',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   --font-mono:'JetBrains Mono','Fira Code',monospace;
-}
-
-body{
-  background:var(--bg);
-  color:var(--text-primary);
-  font-family:var(--font-body);
-  font-weight:400;
-  line-height:1.6;
-  -webkit-font-smoothing:antialiased;
 }
 
 /* ===== MASTHEAD ===== */
@@ -68,283 +86,652 @@ body{
   border-bottom:0.5px solid var(--border);
 }
 .masthead__inner{
-  max-width:100%;
+  max-width:1280px;
   margin:0 auto;
-  padding:0 1.5rem;
+  padding:0 2rem;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  height:52px;
+  height:58px;
 }
 .masthead__brand{
   font-family:var(--font-display);
-  font-size:1.1rem;
+  font-size:1.2rem;
   font-weight:600;
   color:var(--text-primary);
   text-decoration:none;
   letter-spacing:-0.01em;
   display:flex;
   align-items:center;
-  gap:0.15rem;
+  gap:0.2rem;
 }
 .masthead__brand span{color:var(--accent);font-weight:700}
+.masthead__brand .brand-divider{
+  color:var(--text-muted);
+  font-weight:400;
+  font-size:0.85rem;
+  margin:0 0.2rem;
+}
 .masthead__brand .brand-sub{
   font-family:var(--font-body);
-  font-size:0.65rem;
-  font-weight:500;
+  font-size:0.72rem;
+  font-weight:400;
   color:var(--text-muted);
-  letter-spacing:0.06em;
+  letter-spacing:0.04em;
   text-transform:uppercase;
-  margin-left:0.5rem;
 }
-.masthead__meta{
-  display:flex;
-  align-items:center;
-  gap:1rem;
-  font-size:0.7rem;
+.masthead__nav{display:flex;gap:0;align-items:center}
+.masthead__nav a{
+  font-family:var(--font-body);
   color:var(--text-muted);
+  text-decoration:none;
+  font-size:0.72rem;
+  font-weight:600;
+  padding:0.4rem 0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  transition:all var(--transition);
+  border-bottom:2px solid transparent;
 }
+.masthead__nav a:hover{color:var(--text-primary);border-bottom-color:var(--border)}
+.masthead__nav a.active{color:var(--accent);border-bottom-color:var(--accent)}
 .masthead__badge{
-  font-size:0.58rem;
+  font-family:var(--font-body);
+  font-size:0.6rem;
   font-weight:600;
   letter-spacing:0.08em;
   text-transform:uppercase;
-  padding:0.15rem 0.5rem;
+  padding:0.15rem 0.55rem;
   border-radius:var(--radius-sm);
   background:var(--accent-dim);
   color:var(--accent);
   border:0.5px solid var(--accent);
+  margin-left:0.5rem;
 }
 
-/* ===== KPI BAR ===== */
-.kpi-bar{
+/* ===== HERO ===== */
+.hero{
+  padding:6rem 2rem 5rem;
+  text-align:center;
+  max-width:860px;
+  margin:0 auto;
+}
+.hero__overline{
+  font-family:var(--font-body);
+  font-size:0.68rem;
+  font-weight:600;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:1.5rem;
+}
+.hero__title{
+  font-family:var(--font-display);
+  font-size:3.5rem;
+  font-weight:600;
+  line-height:1.12;
+  color:var(--text-primary);
+  letter-spacing:-0.015em;
+  margin-bottom:1.25rem;
+}
+.hero__title em{font-style:italic;font-weight:500}
+.hero__title span{color:var(--accent)}
+.hero__subtitle{
+  font-family:var(--font-body);
+  font-size:1.15rem;
+  font-weight:400;
+  color:var(--text-secondary);
+  max-width:620px;
+  margin:0 auto 2.5rem;
+  line-height:1.7;
+}
+.hero__meta{
+  display:flex;
+  justify-content:center;
+  gap:2rem;
+  flex-wrap:wrap;
+  font-family:var(--font-body);
+  font-size:0.78rem;
+  font-weight:500;
+  color:var(--text-muted);
+}
+.hero__meta span{display:flex;align-items:center;gap:0.4rem}
+.hero__meta .dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+.hero__meta .dot.blue{background:var(--accent)}
+.hero__meta .dot.green{background:var(--green)}
+.hero__meta .dot.gold{background:var(--gold-ct)}
+
+/* ===== STAT BLOCK ===== */
+.stat-block{
+  max-width:1280px;
+  margin:0 auto 4rem;
+  padding:0 2rem;
   display:grid;
   grid-template-columns:repeat(5,1fr);
-  gap:0;
+  gap:1px;
   background:var(--border);
-  border-bottom:0.5px solid var(--border);
+  border:0.5px solid var(--border);
 }
-.kpi-card{
-  background:var(--bg-card);
-  padding:0.9rem 1rem;
+.stat-card{
+  background:var(--bg-overlay);
+  padding:1.75rem 1.25rem;
   text-align:center;
+  transition:background var(--transition);
 }
-.kpi-card__value{
+.stat-card:hover{background:var(--accent-dim)}
+.stat-card__value{
   font-family:var(--font-display);
-  font-size:1.6rem;
+  font-size:2.25rem;
   font-weight:600;
   line-height:1.1;
-  margin-bottom:0.15rem;
+  margin-bottom:0.35rem;
 }
-.kpi-card__value.blue{color:var(--blue)}
-.kpi-card__value.green{color:var(--green)}
-.kpi-card__value.gold{color:var(--gold-ct)}
-.kpi-card__value.red{color:var(--red)}
-.kpi-card__value.purple{color:var(--purple)}
-.kpi-card__label{
+.stat-card__value.blue{color:var(--accent)}
+.stat-card__value.green{color:var(--green)}
+.stat-card__value.gold{color:var(--gold-ct)}
+.stat-card__value.red{color:var(--red)}
+.stat-card__value.purple{color:var(--purple)}
+.stat-card__label{
   font-family:var(--font-body);
-  font-size:0.6rem;
+  font-size:0.65rem;
   color:var(--text-muted);
   text-transform:uppercase;
   letter-spacing:0.08em;
   font-weight:600;
 }
 
-/* ===== DASHBOARD LAYOUT ===== */
-.dashboard{
-  display:grid;
-  grid-template-columns:280px 1fr 280px;
-  height:calc(100vh - 52px - 90px);
-  min-height:550px;
+/* ===== SECTIONS ===== */
+.section{
+  max-width:1280px;
+  margin:0 auto;
+  padding:5rem 2rem;
 }
-.dash-panel{
+.section--alt{
+  background:var(--bg-elevated);
+  border-top:0.5px solid var(--border);
+  border-bottom:0.5px solid var(--border);
+  max-width:100%;
+}
+.section--alt .section__inner{max-width:1280px;margin:0 auto;padding:0 2rem}
+.section__header{
+  text-align:center;
+  margin-bottom:3rem;
+}
+.section__overline{
+  font-family:var(--font-body);
+  font-size:0.65rem;
+  font-weight:600;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:0.75rem;
+}
+.section__title{
+  font-family:var(--font-display);
+  font-size:2.25rem;
+  font-weight:600;
+  color:var(--text-primary);
+  letter-spacing:-0.01em;
+  margin-bottom:0.75rem;
+  line-height:1.2;
+}
+.section__subtitle{
+  font-family:var(--font-body);
+  font-size:1rem;
+  font-weight:400;
+  color:var(--text-muted);
+  max-width:600px;
+  margin:0 auto;
+}
+
+/* ===== VIZ SECTION — 3-column dashboard around map ===== */
+.viz-section{max-width:100%;padding:0;background:var(--bg-elevated)}
+.viz-section .section__inner{max-width:1440px;margin:0 auto;padding:0 1rem}
+.viz-dashboard{
+  display:grid;
+  grid-template-columns:260px 1fr 260px;
+  gap:0;
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-md);
+  overflow:hidden;
+  box-shadow:var(--shadow-lg);
+  margin-bottom:1rem;
+  min-height:620px;
+}
+.viz-dash-panel{
   display:flex;
   flex-direction:column;
   gap:0.5rem;
-  padding:0.5rem;
+  padding:0.65rem;
   overflow-y:auto;
-  background:var(--bg-elevated);
+  background:var(--bg-overlay);
 }
-.dash-panel--left{border-right:0.5px solid var(--border)}
-.dash-panel--right{border-left:0.5px solid var(--border)}
-.dash-center{
+.viz-dash-panel--left{border-right:0.5px solid var(--border)}
+.viz-dash-panel--right{border-left:0.5px solid var(--border)}
+.viz-dash-center{
   display:flex;
   flex-direction:column;
   background:#0d1117;
 }
-.dash-center__controls{
+.viz-dash-center__bar{
   display:flex;
   align-items:center;
-  gap:0.75rem;
-  padding:0.4rem 1rem;
+  gap:0.5rem;
+  padding:0.4rem 0.75rem;
   background:#161b22;
   border-bottom:0.5px solid #30363d;
   flex-wrap:wrap;
-  font-size:0.78rem;
+  font-size:0.72rem;
   color:#8b949e;
 }
-.dash-center__controls strong{color:#e6edf3}
-.dash-center__map{
-  flex:1;
-  position:relative;
-}
-.dash-center__map iframe{
-  width:100%;
-  height:100%;
-  border:none;
-  display:block;
-}
+.viz-dash-center__bar strong{color:#e6edf3;font-size:0.75rem}
+.viz-dash-center__map{flex:1;min-height:0}
+.viz-dash-center__map iframe{width:100%;height:100%;border:none;display:block}
 
-/* ===== PANEL CARDS ===== */
-.panel-card{
-  background:var(--bg-card);
-  border:0.5px solid var(--border);
+/* Panel cards inside viz dashboard */
+.viz-pcard{
+  background:var(--bg-overlay);
+  border:0.5px solid var(--border-subtle);
   border-radius:var(--radius-sm);
-  padding:0.9rem 1rem;
+  padding:0.7rem 0.85rem;
+  flex-shrink:0;
 }
-.panel-card__title{
+.viz-pcard__title{
   font-family:var(--font-body);
-  font-size:0.62rem;
+  font-size:0.6rem;
   font-weight:600;
   text-transform:uppercase;
   letter-spacing:0.08em;
   color:var(--text-muted);
-  margin-bottom:0.6rem;
-  padding-bottom:0.5rem;
+  margin-bottom:0.5rem;
+  padding-bottom:0.4rem;
   border-bottom:0.5px solid var(--border-subtle);
   display:flex;
   align-items:center;
-  gap:0.4rem;
+  gap:0.35rem;
 }
-.panel-card__icon{
-  flex-shrink:0;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-}
-.panel-card__icon svg{display:block}
-.panel-card__empty{
+.viz-pcard__icon{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.viz-pcard__icon svg{display:block}
+.viz-pcard__empty{
   text-align:center;
-  padding:1.5rem 0.5rem;
-  font-size:0.75rem;
+  padding:1.2rem 0.3rem;
+  font-size:0.7rem;
   color:var(--text-muted);
   font-style:italic;
 }
 
-/* ===== COUNTY DETAIL ===== */
-.county-name{
-  font-family:var(--font-display);
-  font-size:1.15rem;
-  font-weight:600;
-  color:var(--text-primary);
-  margin-bottom:0.6rem;
-}
-.detail-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:0.35rem 0;
-  font-size:0.75rem;
-  border-bottom:0.5px solid var(--border-subtle);
-}
-.detail-row:last-child{border-bottom:none}
-.detail-row__label{color:var(--text-muted);font-weight:500}
-.detail-row__value{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
-.detail-row__value.blue{color:var(--blue)}
-.detail-row__value.green{color:var(--green)}
-.detail-row__value.red{color:var(--red)}
-.detail-row__value.gold{color:var(--gold-ct)}
-.sector-dot{
-  display:inline-block;
-  width:7px;height:7px;
-  border-radius:2px;
-  margin-right:0.3rem;
-  vertical-align:middle;
-}
-
-/* ===== RANKINGS ===== */
-.rank-item{
+/* Detail rows inside viz panels */
+.viz-drow{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:0.3rem 0;
-  font-size:0.73rem;
+  font-size:0.7rem;
   border-bottom:0.5px solid var(--border-subtle);
 }
-.rank-item:last-child{border-bottom:none}
-.rank-item__pos{color:var(--text-muted);font-weight:600;width:28px;flex-shrink:0}
-.rank-item__name{flex:1;color:var(--text-secondary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rank-item__value{font-weight:600;font-variant-numeric:tabular-nums}
-.rank-item__value.blue{color:var(--blue)}
-.rank-item__value.red{color:var(--red)}
+.viz-drow:last-child{border-bottom:none}
+.viz-drow__label{color:var(--text-muted);font-weight:500}
+.viz-drow__value{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.viz-drow__value.blue{color:var(--blue)}
+.viz-drow__value.green{color:var(--green)}
+.viz-drow__value.red{color:var(--red)}
+.viz-drow__value.gold{color:var(--gold-ct)}
 
-/* ===== SECTOR BARS ===== */
-.sector-item{margin-bottom:5px}
-.sector-item__header{display:flex;justify-content:space-between;font-size:0.68rem;margin-bottom:2px}
-.sector-item__name{display:flex;align-items:center;gap:0.3rem;color:var(--text-secondary);font-weight:500}
-.sector-item__count{font-weight:600;color:var(--text-muted)}
-.sector-item__bar{height:3px;background:var(--border-subtle);border-radius:2px;overflow:hidden}
-.sector-item__fill{height:100%;border-radius:2px;transition:width 600ms ease}
-
-/* ===== INFO SECTION ===== */
-.info-section{
-  max-width:1280px;
-  margin:0 auto;
-  padding:3rem 2rem;
-  text-align:center;
+/* Mini rank items */
+.viz-rank{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0.22rem 0;
+  font-size:0.68rem;
+  border-bottom:0.5px solid var(--border-subtle);
 }
-.info-section__title{
+.viz-rank:last-child{border-bottom:none}
+.viz-rank__pos{color:var(--text-muted);font-weight:600;width:24px;flex-shrink:0}
+.viz-rank__name{flex:1;color:var(--text-secondary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viz-rank__value{font-weight:600;font-variant-numeric:tabular-nums}
+.viz-rank__value.blue{color:var(--blue)}
+.viz-rank__value.red{color:var(--red)}
+
+/* Mini sector bars */
+.viz-sec{margin-bottom:4px}
+.viz-sec__hdr{display:flex;justify-content:space-between;font-size:0.64rem;margin-bottom:1px}
+.viz-sec__name{display:flex;align-items:center;gap:0.25rem;color:var(--text-secondary);font-weight:500}
+.viz-sec__cnt{font-weight:600;color:var(--text-muted)}
+.viz-sec__bar{height:2.5px;background:var(--border-subtle);border-radius:2px;overflow:hidden}
+.viz-sec__fill{height:100%;border-radius:2px}
+
+.viz-caption{
+  text-align:center;
+  font-family:var(--font-body);
+  font-size:0.78rem;
+  color:var(--text-muted);
+  padding:0.5rem 1rem 1.5rem;
+}
+.viz-caption strong{color:var(--text-primary);font-weight:600}
+
+@media(max-width:1100px){
+  .viz-dashboard{grid-template-columns:1fr;min-height:auto}
+  .viz-dash-center__map{height:450px}
+  .viz-dash-panel--left{border-right:none;border-bottom:0.5px solid var(--border)}
+  .viz-dash-panel--right{border-left:none;border-top:0.5px solid var(--border)}
+}
+
+/* ===== INFO CARDS ===== */
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:0.75rem;
+}
+.card-grid--2{grid-template-columns:repeat(2,1fr)}
+.card-grid--4{grid-template-columns:repeat(4,1fr)}
+.info-card{
+  background:var(--bg-overlay);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:1.5rem;
+  transition:border-color var(--transition),box-shadow var(--transition);
+}
+.info-card:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.info-card__icon{
+  font-size:1.25rem;
+  margin-bottom:0.75rem;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:var(--radius-sm);
+}
+.info-card__icon.blue{background:var(--accent-dim);color:var(--accent)}
+.info-card__icon.green{background:var(--green-dim);color:var(--green)}
+.info-card__icon.gold{background:var(--accent-dim);color:var(--gold-ct)}
+.info-card__icon.red{background:var(--red-dim);color:var(--red)}
+.info-card__icon.purple{background:var(--purple-dim);color:var(--purple)}
+.info-card__title{
   font-family:var(--font-display);
-  font-size:1.75rem;
+  font-size:1.05rem;
   font-weight:600;
   color:var(--text-primary);
   margin-bottom:0.5rem;
 }
-.info-section__text{
-  font-size:0.9rem;
+.info-card__text{
+  font-family:var(--font-body);
+  font-size:0.85rem;
   color:var(--text-muted);
-  max-width:600px;
-  margin:0 auto;
   line-height:1.6;
 }
+
+/* ===== RANKINGS TABLE ===== */
+.rankings-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0.75rem;
+}
+.rank-panel{
+  background:var(--bg-overlay);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  overflow:hidden;
+}
+.rank-panel__header{
+  font-family:var(--font-body);
+  padding:0.9rem 1.25rem;
+  border-bottom:0.5px solid var(--border-subtle);
+  font-size:0.8rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--text-primary);
+}
+.rank-panel__header.blue{border-left:3px solid var(--accent)}
+.rank-panel__header.red{border-left:3px solid var(--red)}
+.rank-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0.55rem 1.25rem;
+  font-family:var(--font-body);
+  font-size:0.8rem;
+  border-bottom:0.5px solid var(--border-subtle);
+}
+.rank-row:last-child{border-bottom:none}
+.rank-row__name{color:var(--text-secondary);font-weight:500}
+.rank-row__name b{font-weight:600;color:var(--text-muted)}
+.rank-row__value{font-weight:600;font-variant-numeric:tabular-nums}
+.rank-row__value.blue{color:var(--accent)}
+.rank-row__value.red{color:var(--red)}
+
+/* ===== SECTOR BARS ===== */
+.sector-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem}
+.sector-card{
+  background:var(--bg-overlay);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:1.25rem;
+  transition:border-color var(--transition);
+}
+.sector-card:hover{border-color:var(--accent)}
+.sector-card__header{
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+  margin-bottom:0.75rem;
+}
+.sector-card__dot{
+  width:8px;
+  height:8px;
+  border-radius:2px;
+  flex-shrink:0;
+}
+.sector-card__name{
+  font-family:var(--font-body);
+  font-size:0.82rem;
+  font-weight:600;
+  color:var(--text-primary);
+}
+.sector-card__count{
+  font-family:var(--font-mono);
+  font-size:0.65rem;
+  color:var(--text-muted);
+  margin-left:auto;
+  font-weight:500;
+}
+.sector-card__bar{
+  height:3px;
+  background:var(--border-subtle);
+  border-radius:2px;
+  margin-bottom:0.5rem;
+  overflow:hidden;
+}
+.sector-card__bar-fill{
+  height:100%;
+  border-radius:2px;
+  transition:width 700ms ease;
+}
+.sector-card__desc{
+  font-family:var(--font-body);
+  font-size:0.75rem;
+  color:var(--text-muted);
+  line-height:1.5;
+}
+
+/* ===== METHODOLOGY ===== */
+.methodology-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0.75rem;
+}
+.method-card{
+  background:var(--bg-overlay);
+  border:0.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:1.5rem;
+}
+.method-card__step{
+  font-family:var(--font-body);
+  font-size:0.62rem;
+  font-weight:700;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:0.5rem;
+}
+.method-card__title{
+  font-family:var(--font-display);
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text-primary);
+  margin-bottom:0.5rem;
+}
+.method-card__text{
+  font-family:var(--font-body);
+  font-size:0.82rem;
+  color:var(--text-muted);
+  line-height:1.55;
+}
+
+/* ===== CTA ===== */
+.cta-section{
+  text-align:center;
+  padding:5rem 2rem;
+  background:var(--bg-dark);
+}
+.cta-section .section__inner{max-width:640px;margin:0 auto}
+.cta-section__title{
+  font-family:var(--font-display);
+  font-size:1.75rem;
+  font-weight:600;
+  color:#e8ecf0;
+  margin-bottom:0.75rem;
+  letter-spacing:-0.01em;
+}
+.cta-section__text{
+  font-family:var(--font-body);
+  font-size:0.95rem;
+  color:rgba(232,236,240,0.7);
+  margin-bottom:1.5rem;
+}
+.cta-links{display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap}
+.cta-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:0.4rem;
+  padding:0.65rem 1.5rem;
+  border-radius:var(--radius-sm);
+  font-family:var(--font-body);
+  font-size:0.82rem;
+  font-weight:600;
+  text-decoration:none;
+  transition:all var(--transition);
+  cursor:pointer;
+}
+.cta-btn--primary{background:var(--accent-dark);color:var(--bg-dark);border:none}
+.cta-btn--primary:hover{background:#c4a866;transform:translateY(-1px)}
+.cta-btn--outline{background:transparent;color:var(--accent-dark);border:0.5px solid rgba(212,184,122,0.5)}
+.cta-btn--outline:hover{background:rgba(212,184,122,0.08);border-color:var(--accent-dark)}
+.cta-btn--ghost{background:transparent;color:rgba(232,236,240,0.6);border:0.5px solid rgba(232,236,240,0.2)}
+.cta-btn--ghost:hover{color:#e8ecf0;border-color:rgba(232,236,240,0.4)}
 
 /* ===== FOOTER ===== */
 .footer{
   background:var(--bg-dark);
   border-top:0.5px solid var(--border-dark);
-  padding:2rem 2rem 1.5rem;
+  padding:3.5rem 2rem 2rem;
 }
 .footer__inner{
   max-width:1280px;
   margin:0 auto;
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr 1fr;
+  gap:2rem;
+}
+.footer__brand{
+  font-family:var(--font-display);
+  font-size:1.05rem;
+  font-weight:600;
+  color:#e8ecf0;
+  margin-bottom:0.5rem;
+}
+.footer__brand span{color:var(--accent-dark)}
+.footer__desc{
+  font-family:var(--font-body);
+  font-size:0.8rem;
+  color:rgba(232,236,240,0.55);
+  line-height:1.55;
+  max-width:280px;
+}
+.footer__col-title{
+  font-family:var(--font-body);
+  font-size:0.62rem;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  color:rgba(232,236,240,0.4);
+  margin-bottom:0.85rem;
+}
+.footer__col a{
+  display:block;
+  font-family:var(--font-body);
+  font-size:0.78rem;
+  color:rgba(232,236,240,0.55);
+  text-decoration:none;
+  padding:0.2rem 0;
+  transition:color var(--transition);
+}
+.footer__col a:hover{color:var(--accent-dark)}
+.footer__bottom{
+  max-width:1280px;
+  margin:2rem auto 0;
+  padding-top:1.5rem;
+  border-top:0.5px solid var(--border-dark);
   display:flex;
   justify-content:space-between;
   align-items:center;
   flex-wrap:wrap;
-  gap:1rem;
+  gap:0.75rem;
+  font-family:var(--font-body);
   font-size:0.72rem;
-  color:rgba(232,236,240,0.4);
+  color:rgba(232,236,240,0.35);
 }
-.footer__inner a{color:rgba(232,236,240,0.5);text-decoration:none}
-.footer__inner a:hover{color:var(--accent-dark)}
-.footer__brand{font-family:var(--font-display);font-size:0.95rem;font-weight:600;color:#e8ecf0}
-.footer__brand span{color:var(--accent-dark)}
+.footer__bottom a{color:rgba(232,236,240,0.45);text-decoration:none}
+.footer__bottom a:hover{color:var(--accent-dark)}
 
 /* ===== RESPONSIVE ===== */
 @media(max-width:1100px){
-  .dashboard{grid-template-columns:1fr;height:auto}
-  .dash-center__map{height:500px}
-  .dash-panel--left{border-right:none;border-bottom:0.5px solid var(--border)}
-  .dash-panel--right{border-left:none;border-top:0.5px solid var(--border)}
-  .kpi-bar{grid-template-columns:repeat(3,1fr)}
+  .stat-block{grid-template-columns:repeat(3,1fr)}
+  .card-grid--4,.sector-grid{grid-template-columns:repeat(2,1fr)}
+  .rankings-grid,.methodology-grid,.card-grid--2{grid-template-columns:1fr}
+  .footer__inner{grid-template-columns:1fr 1fr}
 }
 @media(max-width:768px){
-  .kpi-bar{grid-template-columns:repeat(2,1fr)}
+  .hero__title{font-size:2rem}
+  .hero{padding:3rem 1.25rem 2rem}
+  .section{padding:3rem 1.25rem}
+  .section__title{font-size:1.5rem}
   .masthead__brand .brand-sub{display:none}
-  .masthead__meta{gap:0.5rem}
-  .masthead__badge{font-size:0.55rem}
-  .dash-center__map{height:400px}
-  .info-section{padding:2rem 1rem}
+  .masthead__brand .brand-divider{display:none}
+  .masthead__inner{padding:0 1rem}
+  .masthead__nav a{font-size:0.72rem;padding:0.3rem 0.5rem}
+  .masthead__badge{display:none}
+  .stat-block{grid-template-columns:repeat(2,1fr);gap:0.5rem}
+  .stat-card{padding:1rem 0.75rem}
+  .stat-card__value{font-size:1.5rem}
+  .sector-grid{grid-template-columns:1fr}
+  .card-grid{grid-template-columns:1fr}
+  .card-grid--4{grid-template-columns:1fr}
+  .rankings-grid{grid-template-columns:1fr}
+  .methodology-grid{grid-template-columns:1fr}
+  .footer__inner{grid-template-columns:1fr;gap:1.5rem}
+  .viz-wrapper iframe{height:500px}
+  .hero__meta{flex-direction:column;align-items:center;gap:0.5rem}
+}
+@media(max-width:480px){
+  .stat-block{grid-template-columns:1fr 1fr}
+  .masthead__nav{gap:0}
+  .masthead__nav a{padding:0.3rem 0.45rem;font-size:0.7rem}
+  .hero__title{font-size:1.65rem}
+  .cta-links{flex-direction:column;align-items:center}
 }
 </style>
 </head>
@@ -355,183 +742,398 @@ body{
   <div class="masthead__inner">
     <a href="#" class="masthead__brand">
       H<span>·</span>Heuristics
+      <span class="brand-divider">·</span>
       <span class="brand-sub">US County Economies</span>
     </a>
-    <div class="masthead__meta">
-      <span>3,143 Counties · 8 Sectors · 2010–2024</span>
+    <nav class="masthead__nav">
+      <a href="#overview" class="active">Overview</a>
+      <a href="#map">County Map</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#methodology">Methodology</a>
       <span class="masthead__badge">Observable Pro</span>
-    </div>
+    </nav>
   </div>
 </header>
 
-<!-- ===== KPI BAR ===== -->
-<div class="kpi-bar">
-  <div class="kpi-card">
-    <div class="kpi-card__value blue">3,143</div>
-    <div class="kpi-card__label">US Counties</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-card__value green">$43.2k</div>
-    <div class="kpi-card__label">Avg GDP/capita</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-card__value gold">8</div>
-    <div class="kpi-card__label">Industry Sectors</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-card__value red">15</div>
-    <div class="kpi-card__label">Years of Data</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-card__value purple">~4.5%</div>
-    <div class="kpi-card__label">Peak Growth Rate</div>
-  </div>
-</div>
-
-<!-- ===== DASHBOARD ===== -->
-<div class="dashboard">
-
-  <!-- LEFT PANEL — County Detail -->
-  <div class="dash-panel dash-panel--left">
-    <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="2.5" fill="none" stroke="#b89b5e" stroke-width="1.2"/><polygon points="5,6.5 4,10 6,10" fill="#b89b5e" opacity="0.3"/></svg></span> Selected County</div>
-      <div id="county-detail">
-        <div class="panel-card__empty">Click a county<br>on the map →</div>
-      </div>
-    </div>
-    <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="6" width="2" height="3.5" rx="0.3" fill="#b89b5e" opacity="0.5"/><rect x="3.5" y="3" width="2" height="6.5" rx="0.3" fill="#b89b5e" opacity="0.7"/><rect x="6.5" y="1" width="2" height="8.5" rx="0.3" fill="#b89b5e"/></svg></span> County Metrics</div>
-      <div id="county-metrics">
-        <div class="panel-card__empty">County details<br>appear here</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CENTER — Map Iframe -->
-  <div class="dash-center">
-    <div class="dash-center__controls">
-      <strong>US County Economic Map</strong>
-      <span style="margin-left:auto;">Color: Industry · Growth · GDP/cap</span>
-      <span style="margin-left:0.5rem;">Year: 2010–2024</span>
-      <span style="margin-left:0.5rem;font-weight:600;color:#58a6ff;"><svg width="8" height="9" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polygon points="0,0 8,4.5 0,9" fill="#58a6ff"/></svg>Play</span>
-    </div>
-    <div class="dash-center__map">
-      <iframe src="viz/index.html" id="map-iframe" title="US County Economic Map" sandbox="allow-scripts allow-same-origin"></iframe>
-    </div>
-  </div>
-
-  <!-- RIGHT PANEL — Rankings & Sectors -->
-  <div class="dash-panel dash-panel--right">
-    <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,7 5,2.5 8.5,7" fill="none" stroke="#b89b5e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Top 10 by GDP/cap</div>
-      <div id="rank-top">
-        <div class="rank-item"><span class="rank-item__pos">1.</span><span class="rank-item__name">Austin</span><span class="rank-item__value blue">$18k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">2.</span><span class="rank-item__name">Kitsap</span><span class="rank-item__value blue">$18k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">3.</span><span class="rank-item__name">Monroe</span><span class="rank-item__value blue">$18k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">4.</span><span class="rank-item__name">Portage</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">5.</span><span class="rank-item__name">Sauk</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">6.</span><span class="rank-item__name">Jackson</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">7.</span><span class="rank-item__name">Fremont</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">8.</span><span class="rank-item__name">Salinas</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">9.</span><span class="rank-item__name">Carver</span><span class="rank-item__value blue">$17k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">10.</span><span class="rank-item__name">Quitman</span><span class="rank-item__value blue">$17k</span></div>
-      </div>
-    </div>
-    <div class="panel-card" style="flex-shrink:0;">
-      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,3 5,7.5 8.5,3" fill="none" stroke="#5a6a7a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Bottom 10</div>
-      <div id="rank-bottom">
-        <div class="rank-item"><span class="rank-item__pos">3,222.</span><span class="rank-item__name">Garfield</span><span class="rank-item__value red">$0k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">3,223.</span><span class="rank-item__name">Cleburne</span><span class="rank-item__value red">$0k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">3,224.</span><span class="rank-item__name">Evans</span><span class="rank-item__value red">$0k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">3,225.</span><span class="rank-item__name">Mountrail</span><span class="rank-item__value red">$0k</span></div>
-        <div class="rank-item"><span class="rank-item__pos">3,226.</span><span class="rank-item__name">Baltimore</span><span class="rank-item__value red">$0k</span></div>
-      </div>
-    </div>
-    <div class="panel-card">
-      <div class="panel-card__title"><span class="panel-card__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.35"/><rect x="5.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.55"/><rect x="0.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.2"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.7"/></svg></span> Sector Distribution</div>
-      <div id="sector-bars">
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#58a6ff;"></span>Technology</span><span class="sector-item__count">393</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:82%;background:#58a6ff;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#d2991d;"></span>Manufacturing</span><span class="sector-item__count">410</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:85%;background:#d2991d;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#3fb950;"></span>Finance</span><span class="sector-item__count">378</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:78%;background:#3fb950;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#bc8cff;"></span>Healthcare</span><span class="sector-item__count">425</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:89%;background:#bc8cff;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#f85149;"></span>Energy</span><span class="sector-item__count">295</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:61%;background:#f85149;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#7ee787;"></span>Agriculture</span><span class="sector-item__count">350</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:73%;background:#7ee787;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#f0883e;"></span>Tourism</span><span class="sector-item__count">310</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:64%;background:#f0883e;"></div></div>
-        </div>
-        <div class="sector-item">
-          <div class="sector-item__header"><span class="sector-item__name"><span class="sector-dot" style="background:#8b949e;"></span>Government</span><span class="sector-item__count">390</span></div>
-          <div class="sector-item__bar"><div class="sector-item__fill" style="width:81%;background:#8b949e;"></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ===== INFO ===== -->
-<div class="info-section">
-  <h2 class="info-section__title">How to Use This Dashboard</h2>
-  <p class="info-section__text">
-    <strong>Click any county</strong> on the map to see its economic profile in the left panel — GDP per capita, growth rate, industry sector, population, and national ranking. <strong>Toggle colour modes</strong> to view by industry, growth rate, or GDP per capita. <strong>Press Play</strong> to animate through 2010–2024 and watch economic geography evolve.
+<!-- ===== HERO ===== -->
+<section class="hero" id="overview">
+  <div class="hero__overline">H Heuristics · Economic Intelligence</div>
+  <h1 class="hero__title">US County<br><em>Economic</em> Map</h1>
+  <p class="hero__subtitle">
+    An interactive exploration of economic activity across 3,000+ US counties from 2010 to 2024.
+    Analyse GDP per capita, industry composition, and growth trajectories — all in one powerful, interactive visualisation.
   </p>
+  <div class="hero__meta">
+    <span><span class="dot blue"></span> 3,143 Counties</span>
+    <span><span class="dot green"></span> 8 Industry Sectors</span>
+    <span><span class="dot gold"></span> 2010–2024 Time Range</span>
+    <span>Built with Observable · Leaflet</span>
+  </div>
+</section>
+
+<!-- ===== STAT BLOCK ===== -->
+<div class="stat-block">
+  <div class="stat-card">
+    <div class="stat-card__value blue">3,143</div>
+    <div class="stat-card__label">US Counties</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value green">$627B</div>
+    <div class="stat-card__label">Total GDP Sampled</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value gold">8</div>
+    <div class="stat-card__label">Industry Sectors</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value red">15</div>
+    <div class="stat-card__label">Years of Data</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value purple">~4.5%</div>
+    <div class="stat-card__label">Peak Annual Growth</div>
+  </div>
 </div>
+
+<!-- ===== VIZ SECTION — 3-column dashboard around map ===== -->
+<section class="section viz-section" id="map" style="padding-top:5rem;">
+  <div class="section__inner">
+    <div class="section__header">
+      <div class="section__overline">Interactive Visualisation</div>
+      <h2 class="section__title">County-Level Economic Explorer</h2>
+      <p class="section__subtitle">
+        Click any county to reveal detailed metrics in the left panel. Toggle between industry, growth rate, and GDP per capita colour modes. Use the time slider to trace economic evolution from 2010 to 2024.
+      </p>
+    </div>
+
+    <div class="viz-dashboard">
+      <!-- LEFT PANEL -->
+      <div class="viz-dash-panel viz-dash-panel--left">
+        <div class="viz-pcard">
+          <div class="viz-pcard__title"><span class="viz-pcard__icon"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="4" r="2.5" fill="none" stroke="#b89b5e" stroke-width="1.2"/><polygon points="5,6.5 4,10 6,10" fill="#b89b5e" opacity="0.3"/></svg></span> Selected County</div>
+          <div id="viz-county-detail"><div class="viz-pcard__empty">Click a county<br>on the map →</div></div>
+        </div>
+        <div class="viz-pcard">
+          <div class="viz-pcard__title"><span class="viz-pcard__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="6" width="2" height="3.5" rx="0.3" fill="#b89b5e" opacity="0.5"/><rect x="3.5" y="3" width="2" height="6.5" rx="0.3" fill="#b89b5e" opacity="0.7"/><rect x="6.5" y="1" width="2" height="8.5" rx="0.3" fill="#b89b5e"/></svg></span> County Metrics</div>
+          <div id="viz-county-metrics"><div class="viz-pcard__empty">County details<br>appear here</div></div>
+        </div>
+      </div>
+
+      <!-- CENTER — Map -->
+      <div class="viz-dash-center">
+        <div class="viz-dash-center__bar">
+          <strong>US County Economic Map</strong>
+          <span style="margin-left:auto;">Color: Industry · Growth · GDP/cap</span>
+          <span>Year: 2010–2024</span>
+          <span style="font-weight:600;color:#58a6ff;"><svg width="7" height="8" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:2px;"><polygon points="0,0 8,4.5 0,9" fill="#58a6ff"/></svg>Play</span>
+        </div>
+        <div class="viz-dash-center__map">
+          <iframe src="viz/index.html" id="map-iframe" title="US County Economic Map" sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="viz-dash-panel viz-dash-panel--right">
+        <div class="viz-pcard">
+          <div class="viz-pcard__title"><span class="viz-pcard__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,7 5,2.5 8.5,7" fill="none" stroke="#b89b5e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Top 10 by GDP/cap</div>
+          <div class="viz-rank"><span class="viz-rank__pos">1.</span><span class="viz-rank__name">Austin</span><span class="viz-rank__value blue">$18k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">2.</span><span class="viz-rank__name">Kitsap</span><span class="viz-rank__value blue">$18k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">3.</span><span class="viz-rank__name">Monroe</span><span class="viz-rank__value blue">$18k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">4.</span><span class="viz-rank__name">Portage</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">5.</span><span class="viz-rank__name">Sauk</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">6.</span><span class="viz-rank__name">Jackson</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">7.</span><span class="viz-rank__name">Fremont</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">8.</span><span class="viz-rank__name">Salinas</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">9.</span><span class="viz-rank__name">Carver</span><span class="viz-rank__value blue">$17k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">10.</span><span class="viz-rank__name">Quitman</span><span class="viz-rank__value blue">$17k</span></div>
+        </div>
+        <div class="viz-pcard">
+          <div class="viz-pcard__title"><span class="viz-pcard__icon"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,3 5,7.5 8.5,3" fill="none" stroke="#5a6a7a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Bottom 10</div>
+          <div class="viz-rank"><span class="viz-rank__pos">3,222.</span><span class="viz-rank__name">Garfield</span><span class="viz-rank__value red">$0k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">3,223.</span><span class="viz-rank__name">Cleburne</span><span class="viz-rank__value red">$0k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">3,224.</span><span class="viz-rank__name">Evans</span><span class="viz-rank__value red">$0k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">3,225.</span><span class="viz-rank__name">Mountrail</span><span class="viz-rank__value red">$0k</span></div>
+          <div class="viz-rank"><span class="viz-rank__pos">3,226.</span><span class="viz-rank__name">Baltimore</span><span class="viz-rank__value red">$0k</span></div>
+        </div>
+        <div class="viz-pcard">
+          <div class="viz-pcard__title"><span class="viz-pcard__icon"><svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.35"/><rect x="5.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.55"/><rect x="0.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.2"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#b89b5e" opacity="0.7"/></svg></span> Sector Distribution</div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#58a6ff;"></span>Technology</span><span class="viz-sec__cnt">393</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:82%;background:#58a6ff;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#d2991d;"></span>Manufacturing</span><span class="viz-sec__cnt">410</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:85%;background:#d2991d;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#3fb950;"></span>Finance</span><span class="viz-sec__cnt">378</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:78%;background:#3fb950;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#bc8cff;"></span>Healthcare</span><span class="viz-sec__cnt">425</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:89%;background:#bc8cff;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#f85149;"></span>Energy</span><span class="viz-sec__cnt">295</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:61%;background:#f85149;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#7ee787;"></span>Agriculture</span><span class="viz-sec__cnt">350</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:73%;background:#7ee787;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#f0883e;"></span>Tourism</span><span class="viz-sec__cnt">310</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:64%;background:#f0883e;"></div></div></div>
+          <div class="viz-sec"><div class="viz-sec__hdr"><span class="viz-sec__name"><span class="sector-dot" style="background:#8b949e;"></span>Government</span><span class="viz-sec__cnt">390</span></div><div class="viz-sec__bar"><div class="viz-sec__fill" style="width:81%;background:#8b949e;"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="viz-caption">
+      <strong>How to use:</strong> Click a county to see its economic profile in the left panel. Toggle colour modes to view industry, growth rates, or GDP per capita. Press Play to animate through 2010–2024.
+    </p>
+  </div>
+</section>
+
+<!-- ===== ANALYSIS SECTION ===== -->
+<section class="section" id="analysis">
+  <div class="section__header">
+    <div class="section__overline">Data Analysis</div>
+    <h2 class="section__title">Economic Insights at County Scale</h2>
+    <p class="section__subtitle">
+      Key findings from our county-level economic dataset spanning eight major industry sectors across the United States.
+    </p>
+  </div>
+
+  <!-- Sector Cards -->
+  <div class="sector-grid" style="margin-bottom:3rem;">
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#58a6ff;"></span>
+        <span class="sector-card__name">Technology</span>
+        <span class="sector-card__count">~393 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:82%;background:#58a6ff;"></div></div>
+      <p class="sector-card__desc">Concentrated in coastal metros and emerging tech hubs. Highest GDP per capita of all sectors.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#d2991d;"></span>
+        <span class="sector-card__name">Manufacturing</span>
+        <span class="sector-card__count">~410 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:85%;background:#d2991d;"></div></div>
+      <p class="sector-card__desc">Midwest and Southeast industrial corridors. Steady growth with pockets of rapid automation-driven expansion.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#3fb950;"></span>
+        <span class="sector-card__name">Finance</span>
+        <span class="sector-card__count">~378 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:78%;background:#3fb950;"></div></div>
+      <p class="sector-card__desc">Dominated by New York, Charlotte, and Chicago metros. High-value but concentrated employment.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#bc8cff;"></span>
+        <span class="sector-card__name">Healthcare</span>
+        <span class="sector-card__count">~425 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:89%;background:#bc8cff;"></div></div>
+      <p class="sector-card__desc">Fastest-growing sector nationally. Distributed broadly with clusters around research hospitals and biotech hubs.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#f85149;"></span>
+        <span class="sector-card__name">Energy</span>
+        <span class="sector-card__count">~295 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:61%;background:#f85149;"></div></div>
+      <p class="sector-card__desc">Texas, North Dakota, and Gulf Coast. Volatile but high-GDP impact with renewables reshaping the landscape.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#7ee787;"></span>
+        <span class="sector-card__name">Agriculture</span>
+        <span class="sector-card__count">~350 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:73%;background:#7ee787;"></div></div>
+      <p class="sector-card__desc">Great Plains and Central Valley anchors. Lower GDP per capita but essential for food system stability.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#f0883e;"></span>
+        <span class="sector-card__name">Tourism</span>
+        <span class="sector-card__count">~310 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:64%;background:#f0883e;"></div></div>
+      <p class="sector-card__desc">Coastal resorts, national parks, and urban destinations. Cyclical but resilient long-term growth.</p>
+    </div>
+    <div class="sector-card">
+      <div class="sector-card__header">
+        <span class="sector-card__dot" style="background:#8b949e;"></span>
+        <span class="sector-card__name">Government</span>
+        <span class="sector-card__count">~390 counties</span>
+      </div>
+      <div class="sector-card__bar"><div class="sector-card__bar-fill" style="width:81%;background:#8b949e;"></div></div>
+      <p class="sector-card__desc">DC metro, state capitals, and military bases. Stable employment base with moderate GDP contribution.</p>
+    </div>
+  </div>
+
+  <!-- Rankings -->
+  <div style="margin-bottom:1.5rem;">
+    <div class="section__overline" style="text-align:left;">County Rankings</div>
+    <h3 style="font-size:1.25rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem;">GDP Per Capita Leaders & Laggards</h3>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.5rem;">Based on modelled economic data across all 3,143 US counties for the year 2024.</p>
+  </div>
+  <div class="rankings-grid">
+    <div class="rank-panel">
+      <div class="rank-panel__header blue">🏆 Top 10 by GDP Per Capita</div>
+      <div class="rank-row"><span class="rank-row__name">1. Austin</span><span class="rank-row__value blue">$18k</span></div>
+      <div class="rank-row"><span class="rank-row__name">2. Kitsap</span><span class="rank-row__value blue">$18k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3. Monroe</span><span class="rank-row__value blue">$18k</span></div>
+      <div class="rank-row"><span class="rank-row__name">4. Portage</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">5. Sauk</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">6. Jackson</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">7. Fremont</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">8. Salinas</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">9. Carver</span><span class="rank-row__value blue">$17k</span></div>
+      <div class="rank-row"><span class="rank-row__name">10. Quitman</span><span class="rank-row__value blue">$17k</span></div>
+    </div>
+    <div class="rank-panel">
+      <div class="rank-panel__header red">📉 Bottom 10 by GDP Per Capita</div>
+      <div class="rank-row"><span class="rank-row__name">3,222. Garfield</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,223. Cleburne</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,224. Evans</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,225. Mountrail</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,226. Baltimore</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,227. Duval</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,228. Montgomery</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,229. Cotton</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,230. Moultrie</span><span class="rank-row__value red">$0k</span></div>
+      <div class="rank-row"><span class="rank-row__name">3,231. Union</span><span class="rank-row__value red">$0k</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== METHODOLOGY SECTION ===== -->
+<section class="section--alt" id="methodology">
+  <div class="section__inner" style="padding:5rem 2rem;">
+    <div class="section__header">
+      <div class="section__overline">Methodology</div>
+      <h2 class="section__title">How This Visualisation Works</h2>
+      <p class="section__subtitle">
+        Built with Observable Framework, Leaflet.js, and TopoJSON — a modern stack for interactive geographic data visualisation.
+      </p>
+    </div>
+    <div class="methodology-grid">
+      <div class="method-card">
+        <div class="method-card__step">Step 1</div>
+        <div class="method-card__title">Geographic Foundation</div>
+        <p class="method-card__text">
+          US county boundary data from the US Census Bureau, rendered as TopoJSON for efficient browser delivery. The map uses Leaflet.js with CartoDB dark tiles for a professional dark-theme basemap.
+        </p>
+      </div>
+      <div class="method-card">
+        <div class="method-card__step">Step 2</div>
+        <div class="method-card__title">Economic Data Model</div>
+        <p class="method-card__text">
+          Each county carries a seeded economic profile: GDP per capita baseline, annual growth rate, dominant industry sector, population, and employment. The model supports 2010–2024 time-series projection.
+        </p>
+      </div>
+      <div class="method-card">
+        <div class="method-card__step">Step 3</div>
+        <div class="method-card__title">Interactive Visualisation</div>
+        <p class="method-card__text">
+          Three colour modes — Industry classification, Growth rate heatmap, and GDP per capita gradient. A time slider animates economic evolution. Click any county for a detailed profile with rankings and peer comparisons.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="cta-section">
+  <div class="section__inner">
+    <h2 class="cta-section__title">Explore the Full Interactive Map</h2>
+    <p class="cta-section__text">
+      Click counties on the map to reveal economic profiles, animate through 15 years of data, and compare regions across all eight industry sectors.
+    </p>
+    <div class="cta-links">
+      <a href="#map" class="cta-btn cta-btn--primary">Open the Map →</a>
+      <a href="#analysis" class="cta-btn cta-btn--outline">View Analysis</a>
+      <a href="https://hheuristics.com" class="cta-btn cta-btn--ghost" target="_blank" rel="noopener">H Heuristics</a>
+    </div>
+  </div>
+</section>
 
 <!-- ===== FOOTER ===== -->
 <footer class="footer">
   <div class="footer__inner">
-    <div class="footer__brand">H<span>·</span>Heuristics</div>
-    <span>© 2026 H Heuristics. Market research & economic development consulting.</span>
+    <div>
+      <div class="footer__brand">H<span>·</span>Heuristics</div>
+      <p class="footer__desc">
+        Market research, economic development consulting, and data intelligence. Building interactive tools for understanding complex economic systems.
+      </p>
+    </div>
+    <div class="footer__col">
+      <div class="footer__col-title">Project</div>
+      <a href="#overview">Overview</a>
+      <a href="#map">County Map</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#methodology">Methodology</a>
+    </div>
+    <div class="footer__col">
+      <div class="footer__col-title">Resources</div>
+      <a href="https://observablehq.com" target="_blank" rel="noopener">Observable</a>
+      <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet.js</a>
+      <a href="https://github.com/topojson/topojson" target="_blank" rel="noopener">TopoJSON</a>
+      <a href="https://www.census.gov/" target="_blank" rel="noopener">US Census Bureau</a>
+    </div>
+    <div class="footer__col">
+      <div class="footer__col-title">H Heuristics</div>
+      <a href="https://hheuristics.com" target="_blank" rel="noopener">Main Site</a>
+      <a href="https://hheuristics.substack.com" target="_blank" rel="noopener">Substack</a>
+      <a href="https://github.com/Hunterhghs" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+  <div class="footer__bottom" style="max-width:1280px;margin:2rem auto 0;">
+    <span>© 2026 H Heuristics. All rights reserved.</span>
     <span>
-      <a href="https://observablehq.com" target="_blank" rel="noopener">Observable</a> ·
+      Built with <a href="https://observablehq.com" target="_blank" rel="noopener">Observable</a> ·
       <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> ·
-      <a href="https://github.com/Hunterhghs/US-County-Economies" target="_blank" rel="noopener">View Source</a> ·
-      <a href="https://hheuristics.com" target="_blank" rel="noopener">hheuristics.com</a>
+      <a href="https://github.com/Hunterhghs/US-County-Economies" target="_blank" rel="noopener">View Source</a>
     </span>
   </div>
 </footer>
 
-<!-- ===== POSTMESSAGE LISTENER — bridges iframe county clicks ===== -->
+<!-- ===== NAV ACTIVE STATE SCRIPT ===== -->
+<script>
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('section[id], div[id="map"]');
+const navLinks = document.querySelectorAll('.masthead__nav a');
+
+function updateActiveLink() {
+  let current = '';
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop - 100;
+    if (window.scrollY >= sectionTop) {
+      current = section.getAttribute('id');
+    }
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('scroll', updateActiveLink, { passive: true });
+</script>
+
+<!-- ===== POSTMESSAGE BRIDGE — live county detail from iframe ===== -->
 <script>
 window.addEventListener('message', function(event) {
   if (!event.data || event.data.type !== 'countySelected') return;
   var d = event.data;
-
   var aboveColor = d.aboveAvg ? '#3fb950' : '#f85149';
   var aboveLabel = d.aboveAvg ? 'Above avg' : 'Below avg';
 
-  var detailHTML = '<div class="county-name">' + d.name + '</div>';
-  detailHTML += '<div class="detail-row"><span class="detail-row__label">GDP per capita</span><span class="detail-row__value blue">$' + Number(d.gdp).toLocaleString() + '</span></div>';
-  detailHTML += '<div class="detail-row"><span class="detail-row__label">Growth Rate</span><span class="detail-row__value green">' + d.growth + '%</span></div>';
-  detailHTML += '<div class="detail-row"><span class="detail-row__label">Industry</span><span class="detail-row__value gold"><span class="sector-dot" style="background:' + d.sectorColor + ';"></span>' + d.sector + '</span></div>';
-  detailHTML += '<div class="detail-row"><span class="detail-row__label">Population</span><span class="detail-row__value">' + Number(d.population).toLocaleString() + '</span></div>';
-  detailHTML += '<div class="detail-row"><span class="detail-row__label">Employment</span><span class="detail-row__value">' + Number(d.employment).toLocaleString() + '</span></div>';
+  var detailHTML = '<div style="font-family:var(--font-display);font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:0.5rem;">' + d.name + '</div>';
+  detailHTML += '<div class="viz-drow"><span class="viz-drow__label">GDP per capita</span><span class="viz-drow__value blue">$' + Number(d.gdp).toLocaleString() + '</span></div>';
+  detailHTML += '<div class="viz-drow"><span class="viz-drow__label">Growth Rate</span><span class="viz-drow__value green">' + d.growth + '%</span></div>';
+  detailHTML += '<div class="viz-drow"><span class="viz-drow__label">Industry</span><span class="viz-drow__value gold"><span class="sector-dot" style="background:' + d.sectorColor + ';"></span>' + d.sector + '</span></div>';
+  detailHTML += '<div class="viz-drow"><span class="viz-drow__label">Population</span><span class="viz-drow__value">' + Number(d.population).toLocaleString() + '</span></div>';
+  detailHTML += '<div class="viz-drow"><span class="viz-drow__label">Employment</span><span class="viz-drow__value">' + Number(d.employment).toLocaleString() + '</span></div>';
 
-  var metricsHTML = '<div class="detail-row"><span class="detail-row__label">National Rank</span><span class="detail-row__value blue">#' + d.rank + ' / ' + Number(d.total).toLocaleString() + '</span></div>';
-  metricsHTML += '<div class="detail-row"><span class="detail-row__label">Percentile</span><span class="detail-row__value green">Top ' + d.percentile + '%</span></div>';
-  metricsHTML += '<div class="detail-row"><span class="detail-row__label">vs. National Avg</span><span class="detail-row__value" style="color:' + aboveColor + ';">' + aboveLabel + '</span></div>';
+  var metricsHTML = '<div class="viz-drow"><span class="viz-drow__label">National Rank</span><span class="viz-drow__value blue">#' + d.rank + ' / ' + Number(d.total).toLocaleString() + '</span></div>';
+  metricsHTML += '<div class="viz-drow"><span class="viz-drow__label">Percentile</span><span class="viz-drow__value green">Top ' + d.percentile + '%</span></div>';
+  metricsHTML += '<div class="viz-drow"><span class="viz-drow__label">vs. National Avg</span><span class="viz-drow__value" style="color:' + aboveColor + ';">' + aboveLabel + '</span></div>';
 
-  document.getElementById('county-detail').innerHTML = detailHTML;
-  document.getElementById('county-metrics').innerHTML = metricsHTML;
+  document.getElementById('viz-county-detail').innerHTML = detailHTML;
+  document.getElementById('viz-county-metrics').innerHTML = metricsHTML;
 });
 </script>
 
