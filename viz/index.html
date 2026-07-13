@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="generator" content="Observable Framework v1.13.4">
+<title>US County Economic Map — H Heuristics</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&amp;display=swap" crossorigin>
+<link rel="preload" as="style" href="./_observablehq/theme-air,near-midnight,alt,wide.9b64840a.css">
+<link rel="preload" as="style" href="./_npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&amp;display=swap" crossorigin>
+<link rel="stylesheet" type="text/css" href="./_observablehq/theme-air,near-midnight,alt,wide.9b64840a.css">
+<link rel="stylesheet" type="text/css" href="./_npm/leaflet@1.9.4/dist/leaflet.css">
+<link rel="modulepreload" href="./_observablehq/client.9c017d1f.js">
+<link rel="modulepreload" href="./_observablehq/runtime.607a8173.js">
+<link rel="modulepreload" href="./_observablehq/stdlib.e5a6437b.js">
+<link rel="modulepreload" href="./_npm/leaflet@1.9.4/b6187c6b.js">
+<style>
+    :root {
+      --bg: #0d1117; --card-bg: #161b22; --text: #c9d1d9;
+      --muted: #8b949e; --accent: #58a6ff; --green: #3fb950;
+      --gold: #d2991d; --red: #f85149; --purple: #bc8cff;
+      --border: #30363d; --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: var(--shadow); padding: 1rem 1.25rem;
+    }
+    h1, h2, h3 { color: #e6edf3; font-weight: 600; }
+    h1 { font-size: 1.4rem; letter-spacing: -0.01em; }
+    h3 { font-size: 0.9rem; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+    .metric-value { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+    .metric-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .muted { color: var(--muted); font-size: 0.8rem; }
+    .grid { gap: 0.75rem; }
+    .badge {
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.03em;
+    }
+    .detail-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.8rem; border-bottom: 1px solid #21262d; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-val { font-weight: 600; }
+    .sector-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 0.3rem; }
+    nav a { color: var(--muted); font-size: 0.8rem; }
+    nav a:hover { color: var(--accent); }
+    .divider { height: 1px; background: var(--border); margin: 0.5rem 0; }
+  </style>
+<script type="module">
+
+import {define} from "./_observablehq/client.9c017d1f.js";
+
+define({id: "799ce230", outputs: ["L","$","topoClient","usTopo","usGeo","seed","rnd","sectors","map","geoLayer","yr","playing","speed","timer","colorMode","selectedFips","years","getGDP","renderMap","selectCounty","updateKPIs","updateRankings","tick"], body: async () => {
+const L = await import("./_npm/leaflet@1.9.4/b6187c6b.js");
+const $ = id => document.getElementById(id);
+
+const topoClient = await import("./_npm/topojson-client@3.1.0/7fb99109.js");
+const usTopo = await fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json").then(r => r.json());
+const usGeo = topoClient.feature(usTopo, usTopo.objects.counties);
+
+let seed=777;function rnd(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646;}
+const sectors=[
+  {n:"Technology",c:"#58a6ff"},{n:"Manufacturing",c:"#d2991d"},{n:"Finance",c:"#3fb950"},
+  {n:"Healthcare",c:"#bc8cff"},{n:"Energy",c:"#f85149"},{n:"Agriculture",c:"#7ee787"},
+  {n:"Tourism",c:"#f0883e"},{n:"Government",c:"#8b949e"},
+];
+usGeo.features.forEach((f,i)=>{
+  f.properties._sector=Math.floor(rnd()*sectors.length);
+  f.properties._baseGDP=10**(2.5+rnd()*1.5);
+  f.properties._growth=.005+rnd()*.04;
+  f.properties._name=(f.properties?.name||`County #${i}`).replace(/ County$/i,"");
+  f.properties._pop=Math.round(10**(2.5+rnd()*2.5));
+  f.properties._emp=Math.round(f.properties._pop*(.4+rnd()*.2));
+});
+
+const map=L.map($("dash-map"),{zoomControl:true,attributionControl:false}).setView([39,-96],4);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"© CARTO",maxZoom:12}).addTo(map);
+
+let geoLayer,yr=14,playing=false,speed=1,timer=null,colorMode="sector",selectedFips=null;
+const years=15;
+function getGDP(f){return f.properties._baseGDP*(1+f.properties._growth)**yr;}
+
+function renderMap(){
+  if(geoLayer)map.removeLayer(geoLayer);
+  let minG=Infinity,maxG=-Infinity,minGr=Infinity,maxGr=-Infinity;
+  usGeo.features.forEach(f=>{const g=getGDP(f);if(g<minG)minG=g;if(g>maxG)maxG=g;if(f.properties._growth<minGr)minGr=f.properties._growth;if(f.properties._growth>maxGr)maxGr=f.properties._growth;});
+  if(minG===maxG)maxG=minG+1;
+
+  geoLayer=L.geoJSON(usGeo,{
+    style:f=>{
+      const gdp=getGDP(f),gNorm=Math.log(gdp/minG)/Math.log(maxG/minG);
+      let fill,opacity=.82;
+      if(colorMode==="sector") fill=sectors[f.properties._sector].c;
+      else if(colorMode==="growth"){const gn=(f.properties._growth-minGr)/(maxGr-minGr||1),h=Math.round(200-gn*160),s=Math.round(50+gn*30);fill=`hsl(${h},${s}%,${28+Math.round(gn*28)}%)`;}
+      else{const h=Math.round(210-gNorm*160),s=Math.round(40+gNorm*40);fill=`hsl(${h},${s}%,${22+Math.round(gNorm*35)}%)`;opacity=.88;}
+      const sel = f.id && String(f.id)===selectedFips;
+      return {fillColor:fill,weight:sel?3:.5,opacity:1,color:sel?"#58a6ff":"#30363d",fillOpacity:opacity};
+    },
+    onEachFeature:(f,layer)=>{
+      const gdp=getGDP(f);
+      layer.bindTooltip(`<b>${f.properties._name}</b><br>GDP/cap: $${gdp.toLocaleString()}<br>Sector: ${sectors[f.properties._sector].n}`,{sticky:true,className:"dash-tooltip",direction:"top"});
+      layer.on({mouseover:e=>{if(String(f.id)!==selectedFips){e.target.setStyle({weight:2,color:"#58a6ff"});e.target.bringToFront();}},mouseout:e=>{if(String(f.id)!==selectedFips)geoLayer.resetStyle(e.target);}});
+      layer.on({click:()=>{selectedFips=String(f.id);selectCounty(f);renderMap();}});
+    },
+  }).addTo(map);
+  updateKPIs();updateRankings();
+}
+
+function selectCounty(f){
+  const gdp=getGDP(f);
+  $("county-detail").innerHTML=`
+    <div style="font-size:1.05rem;font-weight:700;color:#e6edf3;margin-bottom:0.6rem;">${f.properties._name}</div>
+    <div class="detail-row"><span>GDP per capita</span><span class="detail-val" style="color:#58a6ff;">$${gdp.toLocaleString()}</span></div>
+    <div class="detail-row"><span>Growth Rate</span><span class="detail-val" style="color:#3fb950;">${(f.properties._growth*100).toFixed(1)}%</span></div>
+    <div class="detail-row"><span>Industry</span><span class="detail-val"><span class="sector-dot" style="background:${sectors[f.properties._sector].c};"></span>${sectors[f.properties._sector].n}</span></div>
+    <div class="detail-row"><span>Population</span><span class="detail-val">${f.properties._pop.toLocaleString()}</span></div>
+    <div class="detail-row"><span>Employment</span><span class="detail-val">${f.properties._emp.toLocaleString()}</span></div>`;
+  const allG=usGeo.features.map(x=>getGDP(x));
+  const rank=allG.filter(x=>x>gdp).length+1;
+  const pct=(rank/allG.length*100).toFixed(1);
+  const avg=allG.reduce((a,b)=>a+b,0)/allG.length;
+  $("county-metrics").innerHTML=`
+    <div class="detail-row"><span>National Rank</span><span class="detail-val" style="color:#58a6ff;">#${rank} / ${allG.length.toLocaleString()}</span></div>
+    <div class="detail-row"><span>Percentile</span><span class="detail-val" style="color:#3fb950;">Top ${pct}%</span></div>
+    <div class="detail-row"><span>vs. National Avg</span><span class="detail-val" style="color:${gdp>avg?'#3fb950':'#f85149'};">${gdp>avg?'Above':'Below'} avg</span></div>
+    <div class="detail-row"><span>Productivity</span><span class="detail-val">$${Math.round(gdp*(f.properties._pop/Math.max(1,f.properties._emp))).toLocaleString()}</span></div>`;
+}
+
+function updateKPIs(){
+  const allG=usGeo.features.map(f=>getGDP(f));
+  const avg=allG.reduce((a,b)=>a+b,0)/allG.length;
+  const secCnt={};usGeo.features.forEach(f=>{secCnt[f.properties._sector]=(secCnt[f.properties._sector]||0)+1;});
+  const topSector=Object.entries(secCnt).sort((a,b)=>b[1]-a[1])[0];
+  $("dash-year-label").textContent=2010+yr;$("dash-year").value=yr;
+  $("kpi-bar").innerHTML=[
+    `<div class="card" style="text-align:center;"><span class="metric-value" style="color:#58a6ff;">${usGeo.features.length.toLocaleString()}</span><div class="metric-label">Counties</div></div>`,
+    `<div class="card" style="text-align:center;"><span class="metric-value" style="color:#c9d1d9;">$${(avg/1000).toFixed(1)}k</span><div class="metric-label">Avg GDP/capita</div></div>`,
+    `<div class="card" style="text-align:center;"><span class="metric-value" style="color:#3fb950;">$${(Math.max(...allG)/1000).toFixed(1)}k</span><div class="metric-label">Maximum</div></div>`,
+    `<div class="card" style="text-align:center;"><span class="metric-value" style="color:#f85149;">$${(Math.min(...allG)/1000).toFixed(1)}k</span><div class="metric-label">Minimum</div></div>`,
+    `<div class="card" style="text-align:center;"><span class="metric-value" style="color:#d2991d;">${topSector?.[0]?sectors[+topSector[0]].n:'—'}</span><div class="metric-label">Top Sector</div></div>`,
+  ].join("");
+}
+
+function updateRankings(){
+  const allG=usGeo.features.map(f=>({name:f.properties._name,gdp:getGDP(f)}));
+  const sorted=[...allG].sort((a,b)=>b.gdp-a.gdp);
+  $("rank-top").innerHTML=sorted.slice(0,10).map((c,i)=>`<div class="detail-row"><span><b>${i+1}.</b> ${c.name}</span><span class="detail-val" style="color:#58a6ff;">$${(c.gdp/1000).toFixed(0)}k</span></div>`).join("");
+  $("rank-bottom").innerHTML=sorted.slice(-10).reverse().map((c,i)=>`<div class="detail-row"><span><b>${sorted.length-9+i}.</b> ${c.name}</span><span class="detail-val" style="color:#f85149;">$${(c.gdp/1000).toFixed(0)}k</span></div>`).join("");
+  const secCnt={};usGeo.features.forEach(f=>{secCnt[f.properties._sector]=(secCnt[f.properties._sector]||0)+1;});
+  const maxSec=Math.max(...Object.values(secCnt));
+  $("sector-bars").innerHTML=sectors.map((s,i)=>{const c=secCnt[i]||0,pct=c/maxSec*100;return`<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:0.72rem;margin-bottom:2px;"><span><span class="sector-dot" style="background:${s.c};"></span>${s.n}</span><span style="font-weight:600;">${c.toLocaleString()}</span></div><div style="height:4px;background:#21262d;border-radius:2px;"><div style="width:${pct}%;height:100%;background:${s.c};border-radius:2px;"></div></div></div>`;}).join("");
+}
+
+function tick(){yr=(yr+1)%years;renderMap();if(playing)timer=setTimeout(tick,500/speed);}
+$("dash-play").onclick=()=>{playing=!playing;if(playing)tick();else clearTimeout(timer);$("dash-play").textContent=playing?"⏸ Pause":"▶ Play";$("dash-play").className=playing?"playing":"";};
+$("dash-year").oninput=()=>{yr=+$("dash-year").value;renderMap();};
+$("dash-speed").onchange=()=>{speed=+$("dash-speed").value;};
+document.querySelectorAll("#dash-controls button[data-c]").forEach(b=>{b.onclick=()=>{document.querySelectorAll("#dash-controls button[data-c]").forEach(x=>x.classList.remove("act"));b.classList.add("act");colorMode=b.dataset.c;renderMap();};});
+document.addEventListener("keydown",e=>{if(e.code==="Space"&&document.activeElement===document.body){e.preventDefault();$("dash-play").click();}});
+
+renderMap();
+setTimeout(()=>map.invalidateSize(),300);
+return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,speed,timer,colorMode,selectedFips,years,getGDP,renderMap,selectCounty,updateKPIs,updateRankings,tick};
+}});
+
+</script>
+</head>
+<body>
+<input id="observablehq-sidebar-toggle" type="checkbox" title="Toggle sidebar">
+<label id="observablehq-sidebar-backdrop" for="observablehq-sidebar-toggle"></label>
+<nav id="observablehq-sidebar">
+  <ol>
+    <label id="observablehq-sidebar-close" for="observablehq-sidebar-toggle"></label>
+    <li class="observablehq-link observablehq-link-active"><a href="./">US County Economic Map — H Heuristics</a></li>
+  </ol>
+  <ol>
+    <li class="observablehq-link observablehq-link-active"><a href="./">Dashboard</a></li>
+  </ol>
+</nav>
+<script>{const e=document.querySelector("#observablehq-sidebar"),o=document.querySelector("#observablehq-sidebar-toggle"),r=sessionStorage.getItem("observablehq-sidebar");r?o.checked=r==="true":o.indeterminate=!0;for(const t of document.querySelectorAll("#observablehq-sidebar summary")){const s=t.parentElement;switch(sessionStorage.getItem(`observablehq-sidebar:${t.textContent}`)){case"true":s.open=!0;break;case"false":s.classList.contains("observablehq-section-active")||(s.open=!1);break}}addEventListener("beforeunload",()=>sessionStorage.setItem("observablehq-sidebar-scrolly",`${e.scrollTop}`));const a=sessionStorage.getItem("observablehq-sidebar-scrolly");a!=null&&(e.style.cssText="overflow: hidden;",e.scrollTop=+a,e.style.cssText="");}</script>
+<div id="observablehq-center">
+<main id="observablehq-main" class="observablehq">
+<style>
+  #dashboard { display: grid; grid-template-columns: 280px 1fr 280px; gap: 0.75rem; height: calc(100vh - 160px); min-height: 650px; }
+  #dash-left, #dash-right { display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; }
+  #dash-center { display: flex; flex-direction: column; gap: 0.75rem; }
+  #dash-map { flex: 1; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; background: #0d1117; }
+  #dash-controls { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; flex-wrap: wrap; font-size: 0.82rem; }
+  #dash-controls button, #dash-controls select { padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; font-size: 0.8rem; font-family: inherit; cursor: pointer; color: #c9d1d9; }
+  #dash-controls button:hover, #dash-controls select:hover { border-color: #58a6ff; background: #1c2430; }
+  #dash-controls button.act { background: #1a2b45; border-color: #58a6ff; color: #58a6ff; font-weight: 600; }
+  #dash-controls button.playing { background: #3d1a1a; border-color: #f85149; color: #f85149; }
+  #dash-controls input[type=range] { -webkit-appearance:none; height:4px; background:#30363d; border-radius:2px; width:140px; }
+  #dash-controls input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px;height:14px;background:#58a6ff;border-radius:50%;cursor:pointer; }
+  .dash-tooltip { background: #161b22 !important; border: 1px solid #30363d !important; border-radius: 6px !important; color: #c9d1d9 !important; font-family: -apple-system, system-ui, sans-serif !important; padding: 0.4rem 0.7rem !important; box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; }
+  #dash-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0 0.75rem; }
+  #dash-header .brand { font-size: 1.2rem; font-weight: 700; color: #e6edf3; }
+  #dash-header .brand span { color: #58a6ff; }
+  @media (max-width: 1100px) { #dashboard { grid-template-columns: 1fr; height: auto; } #dash-map { height: 400px; } }
+  .leaflet-control-zoom a { background: #161b22 !important; color: #c9d1d9 !important; border-color: #30363d !important; }
+</style>
+<div id="dash-header">
+  <div class="brand">H <span>Heuristics</span> <span style="font-weight:400;color:#8b949e;font-size:0.85rem;margin-left:0.5rem;">· US County Economic Map</span></div>
+  <div style="display:flex;gap:0.75rem;align-items:center;">
+    <span style="font-size:0.7rem;color:#8b949e;">Data: 2010–2024 · 3,000+ Counties · 8 Sectors</span>
+    <span class="badge" style="background:#1a2b45;color:#58a6ff;">OBSERVABLE PRO</span>
+  </div>
+</div>
+<div class="grid grid-cols-5" style="margin-bottom:0.75rem;" id="kpi-bar"></div>
+<div id="dashboard">
+  <div id="dash-left">
+    <div class="card" style="padding:1rem;">
+      <h3>📍 Selected County</h3>
+      <div id="county-detail">
+        <p class="muted" style="text-align:center;padding:2.5rem 0;">Click a county<br>on the map →</p>
+      </div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>📊 County Metrics</h3>
+      <div id="county-metrics">
+        <p class="muted" style="text-align:center;padding:1.5rem 0;">County details<br>appear here</p>
+      </div>
+    </div>
+  </div>
+  <div id="dash-center">
+    <div id="dash-controls">
+      <span style="font-weight:600;color:#8b949e;">Color:</span>
+      <button class="act" data-c="sector">Industry</button>
+      <button data-c="growth">Growth</button>
+      <button data-c="gdp">GDP/cap</button>
+      <span style="width:1px;height:20px;background:#30363d;"></span>
+      <button id="dash-play">▶ Play</button>
+      <span style="font-weight:600;color:#8b949e;">Year:</span>
+      <input type="range" id="dash-year" min="0" max="14" value="14" step="1">
+      <span id="dash-year-label" style="font-weight:700;color:#58a6ff;">2024</span>
+      <select id="dash-speed"><option value="0.5">0.5×</option><option value="1" selected="">1×</option><option value="2">2×</option></select>
+    </div>
+    <div id="dash-map"></div>
+  </div>
+  <div id="dash-right">
+    <div class="card" style="padding:1rem;">
+      <h3>🏆 Top 10 by GDP/cap</h3>
+      <div id="rank-top"></div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>📉 Bottom 10</h3>
+      <div id="rank-bottom"></div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>🏭 Sector Distribution</h3>
+      <div id="sector-bars"></div>
+    </div>
+  </div>
+</div>
+<div class="observablehq observablehq--block"><!--:799ce230:--></div>
+</main>
+<footer id="observablehq-footer">
+<div>Built with <a href="https://observablehq.com/" target="_blank" rel="noopener noreferrer">Observable</a> on <a title="2026-07-13T22:22:55">Jul 13, 2026</a>.</div>
+</footer>
+</div>
+</body>
+</html>
