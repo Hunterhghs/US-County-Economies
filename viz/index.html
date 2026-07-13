@@ -153,7 +153,7 @@ function updateRankings(){
 }
 
 function tick(){yr=(yr+1)%years;renderMap();if(playing)timer=setTimeout(tick,500/speed);}
-$("dash-play").onclick=()=>{playing=!playing;if(playing)tick();else clearTimeout(timer);$("dash-play").textContent=playing?"⏸ Pause":"▶ Play";$("dash-play").className=playing?"playing":"";};
+$("dash-play").onclick=()=>{playing=!playing;if(playing)tick();else clearTimeout(timer);$("dash-play").innerHTML=playing?'<svg width="9" height="10" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><rect x="1" y="0" width="2.5" height="9" rx="0.3" fill="currentColor"/><rect x="4.5" y="0" width="2.5" height="9" rx="0.3" fill="currentColor"/></svg> Pause':'<svg width="9" height="10" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polygon points="0,0 8,4.5 0,9" fill="currentColor"/></svg> Play';$("dash-play").className=playing?"playing":"";};
 $("dash-year").oninput=()=>{yr=+$("dash-year").value;renderMap();};
 $("dash-speed").onchange=()=>{speed=+$("dash-speed").value;};
 document.querySelectorAll("#dash-controls button[data-c]").forEach(b=>{b.onclick=()=>{document.querySelectorAll("#dash-controls button[data-c]").forEach(x=>x.classList.remove("act"));b.classList.add("act");colorMode=b.dataset.c;renderMap();};});
@@ -167,19 +167,6 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
 </script>
 </head>
 <body>
-<input id="observablehq-sidebar-toggle" type="checkbox" title="Toggle sidebar">
-<label id="observablehq-sidebar-backdrop" for="observablehq-sidebar-toggle"></label>
-<nav id="observablehq-sidebar">
-  <ol>
-    <label id="observablehq-sidebar-close" for="observablehq-sidebar-toggle"></label>
-    <li class="observablehq-link observablehq-link-active"><a href="./">US County Economic Map — H Heuristics</a></li>
-  </ol>
-  <ol>
-    <li class="observablehq-link observablehq-link-active"><a href="./">Dashboard</a></li>
-  </ol>
-</nav>
-<script>{const e=document.querySelector("#observablehq-sidebar"),o=document.querySelector("#observablehq-sidebar-toggle"),r=sessionStorage.getItem("observablehq-sidebar");r?o.checked=r==="true":o.indeterminate=!0;for(const t of document.querySelectorAll("#observablehq-sidebar summary")){const s=t.parentElement;switch(sessionStorage.getItem(`observablehq-sidebar:${t.textContent}`)){case"true":s.open=!0;break;case"false":s.classList.contains("observablehq-section-active")||(s.open=!1);break}}addEventListener("beforeunload",()=>sessionStorage.setItem("observablehq-sidebar-scrolly",`${e.scrollTop}`));const a=sessionStorage.getItem("observablehq-sidebar-scrolly");a!=null&&(e.style.cssText="overflow: hidden;",e.scrollTop=+a,e.style.cssText="");}</script>
-<div id="observablehq-center">
 <main id="observablehq-main" class="observablehq">
 <style>
   #dashboard { display: grid; grid-template-columns: 280px 1fr 280px; gap: 0.75rem; height: calc(100vh - 160px); min-height: 650px; }
@@ -204,20 +191,19 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
   <div class="brand">H <span>Heuristics</span> <span style="font-weight:400;color:#8b949e;font-size:0.85rem;margin-left:0.5rem;">· US County Economic Map</span></div>
   <div style="display:flex;gap:0.75rem;align-items:center;">
     <span style="font-size:0.7rem;color:#8b949e;">Data: 2010–2024 · 3,000+ Counties · 8 Sectors</span>
-    <span class="badge" style="background:#1a2b45;color:#58a6ff;">OBSERVABLE PRO</span>
   </div>
 </div>
 <div class="grid grid-cols-5" style="margin-bottom:0.75rem;" id="kpi-bar"></div>
 <div id="dashboard">
   <div id="dash-left">
     <div class="card" style="padding:1rem;">
-      <h3>📍 Selected County</h3>
+      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><circle cx="5" cy="4" r="2.5" fill="none" stroke="#58a6ff" stroke-width="1.2"/><polygon points="5,6.5 4,9.5 6,9.5" fill="#58a6ff" opacity="0.3"/></svg> Selected County</h3>
       <div id="county-detail">
         <p class="muted" style="text-align:center;padding:2.5rem 0;">Click a county<br>on the map →</p>
       </div>
     </div>
     <div class="card" style="padding:1rem;">
-      <h3>📊 County Metrics</h3>
+      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><rect x="0.5" y="5.5" width="2" height="4" rx="0.3" fill="#3fb950" opacity="0.5"/><rect x="3.5" y="2.5" width="2" height="7" rx="0.3" fill="#3fb950" opacity="0.7"/><rect x="6.5" y="0.5" width="2" height="9" rx="0.3" fill="#3fb950"/></svg> County Metrics</h3>
       <div id="county-metrics">
         <p class="muted" style="text-align:center;padding:1.5rem 0;">County details<br>appear here</p>
       </div>
@@ -230,7 +216,7 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
       <button data-c="growth">Growth</button>
       <button data-c="gdp">GDP/cap</button>
       <span style="width:1px;height:20px;background:#30363d;"></span>
-      <button id="dash-play">▶ Play</button>
+      <button id="dash-play"><svg width="9" height="10" viewBox="0 0 8 9" style="display:inline-block;vertical-align:middle;margin-right:3px;"><polygon points="0,0 8,4.5 0,9" fill="currentColor"/></svg> Play</button>
       <span style="font-weight:600;color:#8b949e;">Year:</span>
       <input type="range" id="dash-year" min="0" max="14" value="14" step="1">
       <span id="dash-year-label" style="font-weight:700;color:#58a6ff;">2024</span>
@@ -240,24 +226,20 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
   </div>
   <div id="dash-right">
     <div class="card" style="padding:1rem;">
-      <h3>🏆 Top 10 by GDP/cap</h3>
+      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><polyline points="1.5,7 5,2.5 8.5,7" fill="none" stroke="#d2991d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Top 10 by GDP/cap</h3>
       <div id="rank-top"></div>
     </div>
     <div class="card" style="padding:1rem;">
-      <h3>📉 Bottom 10</h3>
+      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><polyline points="1.5,3 5,7.5 8.5,3" fill="none" stroke="#8b949e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bottom 10</h3>
       <div id="rank-bottom"></div>
     </div>
     <div class="card" style="padding:1rem;">
-      <h3>🏭 Sector Distribution</h3>
+      <h3><svg width="11" height="11" viewBox="0 0 10 10" style="display:inline-block;vertical-align:middle;margin-right:4px;margin-top:-1px;"><rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.35"/><rect x="5.5" y="0.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.55"/><rect x="0.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.2"/><rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.5" fill="#bc8cff" opacity="0.7"/></svg> Sector Distribution</h3>
       <div id="sector-bars"></div>
     </div>
   </div>
 </div>
 <div class="observablehq observablehq--block"><!--:799ce230:--></div>
 </main>
-<footer id="observablehq-footer">
-<div>Built with <a href="https://observablehq.com/" target="_blank" rel="noopener noreferrer">Observable</a> on <a title="2026-07-13T22:22:55">Jul 13, 2026</a>.</div>
-</footer>
-</div>
 </body>
 </html>
