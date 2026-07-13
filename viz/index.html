@@ -125,18 +125,6 @@ function selectCounty(f){
     <div class="detail-row"><span>Percentile</span><span class="detail-val" style="color:#3fb950;">Top ${pct}%</span></div>
     <div class="detail-row"><span>vs. National Avg</span><span class="detail-val" style="color:${gdp>avg?'#3fb950':'#f85149'};">${gdp>avg?'Above':'Below'} avg</span></div>
     <div class="detail-row"><span>Productivity</span><span class="detail-val">$${Math.round(gdp*(f.properties._pop/Math.max(1,f.properties._emp))).toLocaleString()}</span></div>`;
-  if(window.parent!==window){
-    window.parent.postMessage({
-      type:'countySelected',
-      name:f.properties._name,gdp:Math.round(gdp),
-      growth:(f.properties._growth*100).toFixed(1),
-      sector:sectors[f.properties._sector].n,
-      sectorColor:sectors[f.properties._sector].c,
-      population:f.properties._pop,employment:f.properties._emp,
-      rank:rank,total:allG.length,percentile:pct,
-      aboveAvg:gdp>avg
-    },'*');
-  }
 }
 
 function updateKPIs(){
@@ -178,13 +166,27 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
 
 </script>
 </head>
-<body style="margin:0;padding:0;overflow:hidden;">
-<main id="observablehq-main" class="observablehq" style="max-width:100%;margin:0;padding:0;">
+<body>
+<input id="observablehq-sidebar-toggle" type="checkbox" title="Toggle sidebar">
+<label id="observablehq-sidebar-backdrop" for="observablehq-sidebar-toggle"></label>
+<nav id="observablehq-sidebar">
+  <ol>
+    <label id="observablehq-sidebar-close" for="observablehq-sidebar-toggle"></label>
+    <li class="observablehq-link observablehq-link-active"><a href="./">US County Economic Map — H Heuristics</a></li>
+  </ol>
+  <ol>
+    <li class="observablehq-link observablehq-link-active"><a href="./">Dashboard</a></li>
+  </ol>
+</nav>
+<script>{const e=document.querySelector("#observablehq-sidebar"),o=document.querySelector("#observablehq-sidebar-toggle"),r=sessionStorage.getItem("observablehq-sidebar");r?o.checked=r==="true":o.indeterminate=!0;for(const t of document.querySelectorAll("#observablehq-sidebar summary")){const s=t.parentElement;switch(sessionStorage.getItem(`observablehq-sidebar:${t.textContent}`)){case"true":s.open=!0;break;case"false":s.classList.contains("observablehq-section-active")||(s.open=!1);break}}addEventListener("beforeunload",()=>sessionStorage.setItem("observablehq-sidebar-scrolly",`${e.scrollTop}`));const a=sessionStorage.getItem("observablehq-sidebar-scrolly");a!=null&&(e.style.cssText="overflow: hidden;",e.scrollTop=+a,e.style.cssText="");}</script>
+<div id="observablehq-center">
+<main id="observablehq-main" class="observablehq">
 <style>
-  #dashboard { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-  #dash-center { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-  #dash-map { flex: 1; background: #0d1117; }
-  #dash-controls { display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 1rem; background: #161b22; border-bottom: 1px solid #30363d; flex-wrap: wrap; font-size: 0.82rem; z-index: 10; }
+  #dashboard { display: grid; grid-template-columns: 280px 1fr 280px; gap: 0.75rem; height: calc(100vh - 160px); min-height: 650px; }
+  #dash-left, #dash-right { display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto; }
+  #dash-center { display: flex; flex-direction: column; gap: 0.75rem; }
+  #dash-map { flex: 1; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; background: #0d1117; }
+  #dash-controls { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; flex-wrap: wrap; font-size: 0.82rem; }
   #dash-controls button, #dash-controls select { padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; font-size: 0.8rem; font-family: inherit; cursor: pointer; color: #c9d1d9; }
   #dash-controls button:hover, #dash-controls select:hover { border-color: #58a6ff; background: #1c2430; }
   #dash-controls button.act { background: #1a2b45; border-color: #58a6ff; color: #58a6ff; font-weight: 600; }
@@ -192,11 +194,35 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
   #dash-controls input[type=range] { -webkit-appearance:none; height:4px; background:#30363d; border-radius:2px; width:140px; }
   #dash-controls input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:14px;height:14px;background:#58a6ff;border-radius:50%;cursor:pointer; }
   .dash-tooltip { background: #161b22 !important; border: 1px solid #30363d !important; border-radius: 6px !important; color: #c9d1d9 !important; font-family: -apple-system, system-ui, sans-serif !important; padding: 0.4rem 0.7rem !important; box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; }
+  #dash-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0 0.75rem; }
+  #dash-header .brand { font-size: 1.2rem; font-weight: 700; color: #e6edf3; }
+  #dash-header .brand span { color: #58a6ff; }
+  @media (max-width: 1100px) { #dashboard { grid-template-columns: 1fr; height: auto; } #dash-map { height: 400px; } }
   .leaflet-control-zoom a { background: #161b22 !important; color: #c9d1d9 !important; border-color: #30363d !important; }
-  .observablehq--block { display: none; }
 </style>
-<div id="dash-hidden-elems" style="display:none;" aria-hidden="true"><div id="kpi-bar"></div><div id="county-detail"></div><div id="county-metrics"></div><div id="rank-top"></div><div id="rank-bottom"></div><div id="sector-bars"></div></div>
+<div id="dash-header">
+  <div class="brand">H <span>Heuristics</span> <span style="font-weight:400;color:#8b949e;font-size:0.85rem;margin-left:0.5rem;">· US County Economic Map</span></div>
+  <div style="display:flex;gap:0.75rem;align-items:center;">
+    <span style="font-size:0.7rem;color:#8b949e;">Data: 2010–2024 · 3,000+ Counties · 8 Sectors</span>
+    <span class="badge" style="background:#1a2b45;color:#58a6ff;">OBSERVABLE PRO</span>
+  </div>
+</div>
+<div class="grid grid-cols-5" style="margin-bottom:0.75rem;" id="kpi-bar"></div>
 <div id="dashboard">
+  <div id="dash-left">
+    <div class="card" style="padding:1rem;">
+      <h3>📍 Selected County</h3>
+      <div id="county-detail">
+        <p class="muted" style="text-align:center;padding:2.5rem 0;">Click a county<br>on the map →</p>
+      </div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>📊 County Metrics</h3>
+      <div id="county-metrics">
+        <p class="muted" style="text-align:center;padding:1.5rem 0;">County details<br>appear here</p>
+      </div>
+    </div>
+  </div>
   <div id="dash-center">
     <div id="dash-controls">
       <span style="font-weight:600;color:#8b949e;">Color:</span>
@@ -212,8 +238,26 @@ return {L,$,topoClient,usTopo,usGeo,seed,rnd,sectors,map,geoLayer,yr,playing,spe
     </div>
     <div id="dash-map"></div>
   </div>
+  <div id="dash-right">
+    <div class="card" style="padding:1rem;">
+      <h3>🏆 Top 10 by GDP/cap</h3>
+      <div id="rank-top"></div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>📉 Bottom 10</h3>
+      <div id="rank-bottom"></div>
+    </div>
+    <div class="card" style="padding:1rem;">
+      <h3>🏭 Sector Distribution</h3>
+      <div id="sector-bars"></div>
+    </div>
+  </div>
 </div>
 <div class="observablehq observablehq--block"><!--:799ce230:--></div>
 </main>
+<footer id="observablehq-footer">
+<div>Built with <a href="https://observablehq.com/" target="_blank" rel="noopener noreferrer">Observable</a> on <a title="2026-07-13T22:22:55">Jul 13, 2026</a>.</div>
+</footer>
+</div>
 </body>
 </html>
